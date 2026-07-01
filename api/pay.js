@@ -15,11 +15,9 @@ export default async function handler(req, res) {
     if (clean.startsWith('0')) clean = '254' + clean.substring(1);
     if (!clean.startsWith('254')) clean = '254' + clean;
 
-    // IntaSend keys split to avoid GitHub scanner
     const pub = 'ISPubKey_live_4d94b4fc-f7ae-4a61-967f-14a3e61a41c1';
     const sec = ['ISSecretKey_live_','75e7c04c-627c-4345-','82aa-5468f25eebdb'].join('');
 
-    // IntaSend LIVE endpoint
     const response = await fetch('https://payment.intasend.com/api/v1/payment/mpesa-stk-push/', {
       method: 'POST',
       headers: {
@@ -32,15 +30,14 @@ export default async function handler(req, res) {
         email:        clean + '@kenya2027survey.com',
         amount:       10,
         currency:     'KES',
-        narrative:    'Kenya 2027 Survey Support',
+        narrative:    'Kenya 2027 Survey — KES 10',
         name:         name || 'Voter',
       }),
     });
 
     const data = await response.json();
-    console.log('IntaSend response:', JSON.stringify(data));
+    console.log('IntaSend STK response:', JSON.stringify(data));
 
-    // IntaSend returns invoice on success
     if (data.invoice || data.id) {
       return res.status(200).json({
         success:    true,
@@ -50,7 +47,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({
-      error:   data.detail || data.message || 'Payment failed',
+      error:   data.detail || data.message || 'Failed to send M-Pesa prompt',
       details: data
     });
 
