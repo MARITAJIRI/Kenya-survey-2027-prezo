@@ -1096,6 +1096,148 @@ function processPayment(){
     showToast('✅ Results unlocked! 🇰🇪', 4000);
   }, 800);
 }
+
+  <script>
+const SUPABASE_URL  = 'https://zjvlpszkjvjhphdfwczg.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpqdmxwc3pranZqaHBoZGZ3Y3pnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTYxOTAsImV4cCI6MjA5NzY5MjE5MH0.2ZOJaavWmVazbO7cWmPMjPjjN6fLKPYtZgLzj8qSlfk';
+let db;
+
+function initDB(){
+  try {
+    const { createClient } = supabase;
+    db = createClient(SUPABASE_URL, SUPABASE_ANON);
+  } catch(e) {
+    db = null;
+  }
+}
+
+const VK='kps_v14_voted', PK='kps_v14_paid';
+
+const SEED_TOTAL = 17252;
+const CANDS=[
+  {name:'William Ruto',     party:'UDA · Kenya Kwanza', pct:32,votes:5502,cls:'c0'},
+  {name:'Edwin Sifuna',     party:'ODM Party',          pct:25,votes:4262,cls:'c3'},
+  {name:'Kalonzo Musyoka',  party:'Wiper Party',        pct:17,votes:2991,cls:'c1'},
+  {name:"Fred Matiang'i", party:'Independent',        pct:14,votes:2441,cls:'c2'},
+  {name:'Rigathi Gachagua', party:'Democratic Party',   pct:8,votes:1416,cls:'c4'},
+  {name:'Babu Owino',       party:'ODM Party',          pct:4,votes:640,cls:'c5'},
+];
+
+let cur=0, chosen=null;
+
+function showToast(msg,dur=3000){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function hideAll(){document.querySelectorAll('.step').forEach(s=>s.classList.remove('on'));document.getElementById('av').style.display='none';}
+
+function go(idx){
+  hideAll();cur=idx;
+  document.getElementById('s'+idx).classList.add('on');
+  document.getElementById('prog').style.width=[0,22,50,75,100][idx]+'%';
+}
+
+function pick(card){
+  document.querySelectorAll('.cand-card').forEach(c=>c.classList.remove('sel'));
+  card.classList.add('sel');
+  const img=card.querySelector('img');
+  chosen={name:card.dataset.n,party:card.dataset.p,imgSrc:img?img.src:'',color:card.dataset.c,initials:card.dataset.i};
+}
+
+function step1next(){
+  if(!chosen){document.getElementById('e1').style.display='block';return;}
+  go(2);
+}
+
+function step2next(){
+  const name=document.getElementById('fname').value.trim();
+  const phone=document.getElementById('fphone').value.trim();
+  const county=document.getElementById('fcounty').value;
+  const err=document.getElementById('e2');
+  if(name.split(' ').length<2){err.textContent='Please enter at least two names';err.style.display='block';return;}
+  if(phone.length<9){err.textContent='Please enter a valid phone';err.style.display='block';return;}
+  if(!county){err.textContent='Please select county';err.style.display='block';return;}
+  err.style.display='none';
+  go(3);
+}
+
+// IMPROVED SUBMIT VOTE
+async function submitVote(){
+  const name = document.getElementById('fname')?.value?.trim() || '';
+  const phone = document.getElementById('fphone')?.value?.trim() || '';
+  const county = document.getElementById('fcounty')?.value || '';
+  const btn = document.getElementById('submit-btn');
+  const err = document.getElementById('e3');
+
+  let vd={};
+  try{vd=JSON.parse(localStorage.getItem(VK)||'{}');}catch(e){}
+
+  if(vd.candidate){
+    showResults(!!localStorage.getItem(PK));
+    return;
+  }
+
+  if(!chosen){
+    err.textContent='Please go back and select a candidate.';
+    err.style.display='block';
+    return;
+  }
+
+  btn.disabled=true;
+  btn.textContent='⏳ Submitting...';
+
+  localStorage.setItem(VK, JSON.stringify({candidate:chosen.name, name, county, phone}));
+
+  // Supabase in background
+  try{
+    if(db && db.from){
+      db.from('votes').insert([{
+        candidate: chosen.name,
+        name: name,
+        county: county,
+        mpesa_number: phone
+      }]);
+    }
+  }catch(e){}
+
+  setTimeout(() => showResults(false), 800);
+}
+
+function showResults(paid = false) {
+  hideAll();
+  document.getElementById('s4').classList.add('on');
+  document.getElementById('prog').style.width = '100%';
+  if (paid) unlockResults();
+}
+
+function unlockResults(){
+  document.querySelectorAll('.blur-inner').forEach(el => el.classList.remove('blurred'));
+  document.querySelectorAll('.unlock-overlay').forEach(el => el.style.display = 'none');
+  showToast('✅ Full results unlocked!', 3000);
+}
+
+function openPayModal(){
+  document.getElementById('pay-modal').classList.add('open');
+}
+function closePayModal(){
+  document.getElementById('pay-modal').classList.remove('open');
+}
+function processPayment(){
+  const btn=document.getElementById('modal-pay-btn');
+  btn.textContent='✅ Unlocking...';
+  setTimeout(() => {
+    localStorage.setItem(PK,'1');
+    closePayModal();
+    unlockResults();
+  }, 600);
+}
+
+// Share
+function wa(){window.open(`https://wa.me/?text=${encodeURIComponent('I voted in Kenya 2027 Survey! ' + location.href)}`,'_blank');}
+function tw(){window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('I voted in Kenya 2027 Survey! ' + location.href)}`,'_blank');}
+function cp(){navigator.clipboard.writeText(location.href).then(()=>showToast('✅ Link copied!'));}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initDB();
+  document.getElementById('p-count').textContent = SEED_TOTAL.toLocaleString();
+});
 </script>
 </body>
 </html>
