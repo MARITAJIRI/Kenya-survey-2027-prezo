@@ -1065,6 +1065,18 @@ function cp(){
     setTimeout(()=>{b.textContent='🔗 Copy Link';b.classList.remove('done');},2500);
   });
 }
+  <!-- TEMPORARY FIX - Make Pay Modal Open -->
+<script>
+  // Override processPayment to just open the modal for testing
+  function processPayment() {
+    const err = document.getElementById('modal-err');
+    err.textContent = '✅ Modal works! (This is a test - real payment needs backend)';
+    err.style.display = 'block';
+    err.style.background = '#d4edda';
+    err.style.color = '#155724';
+    console.log("Pay modal opened successfully");
+  }
+</script>
 </script>
 </body>
 </html>
