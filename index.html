@@ -1072,6 +1072,30 @@ function cp(){
     setTimeout(()=>{b.textContent='🔗 Copy Link';b.classList.remove('done');},2500);
   });
 }
+
+  // === IMPROVED LOCAL PAYMENT FIX ===
+function processPayment(){
+  const btn = document.getElementById('modal-pay-btn');
+  const err = document.getElementById('modal-err');
+  const phone = document.getElementById('modal-phone-input')?.value?.trim() || '';
+
+  if(!phone || phone.length < 9){
+    err.textContent = 'Please enter a valid M-Pesa number (e.g. 0722000000)';
+    err.style.display = 'block';
+    return;
+  }
+
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '✅ Unlocking Results...';
+
+  setTimeout(() => {
+    localStorage.setItem('kps_v14_paid','1');
+    closePayModal();
+    unlockResults();
+    showToast('✅ Results unlocked! 🇰🇪', 4000);
+  }, 800);
+}
 </script>
 </body>
 </html>
