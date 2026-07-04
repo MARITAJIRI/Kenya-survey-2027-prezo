@@ -1,0 +1,13 @@
+{
+  "name": "kenya-survey",
+  "version": "1.0.0",
+  "dependencies": {
+    "@vercel/og": "^0.6.2"
+  }
+}
+Scroll down, choose "Commit directly to the main branch," and click "Commit changes"
+Once that's done, your repo should have package.json sitting next to index.html and api/. Push that, let Vercel redeploy, and /api/og-image should work from there.
+
+
+
+Want
