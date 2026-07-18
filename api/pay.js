@@ -54,7 +54,11 @@ export default async function handler(req) {
 
     // Paystack's Charge API requires an email field even for mobile money —
     // it's never actually emailed, so we synthesize one from the phone number.
-    const syntheticEmail = `${normalizedPhone.replace('+', '')}@voter.kenyasurvey.local`;
+    // Note: "example.com" is a real, reserved domain (RFC 2606) set aside
+    // specifically for cases like this — it always passes email format
+    // validation, unlike made-up domains such as ".local", which some
+    // validators (including Paystack's) reject as not being real domains.
+    const syntheticEmail = `voter${normalizedPhone.replace('+', '')}@example.com`;
 
     // Our own reference, generated here so we can look this transaction up
     // later — both when the frontend polls api/verify, and when Paystack's
