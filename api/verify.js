@@ -1,36 +1,45 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+// api/verify.js
+// The frontend polls this endpoint after sending the STK Push, to find out
+// whether the user has finished entering their M-Pesa PIN yet, and whether
+// it succeeded. Call it like:  /api/verify?reference=KPS_xxx
+//
+// This just reads the status Supabase already has — the actual status update
+// happens in api/paystack-webhook.js when Paystack confirms the charge.
 
-  const invoice_id = req.method === 'GET' ? req.query.invoice_id : req.body?.invoice_id;
-  if (!invoice_id) return res.status(400).json({ error: 'Invoice ID required' });
+export const config = { runtime: 'edge' };
 
+export default async function handler(req) {
   try {
-    const sec = ['ISSecretKey_live_','75e7c04c-627c-4345-','82aa-5468f25eebdb'].join('');
+    const url = new URL(req.url);
+    const reference = url.searchParams.get('reference');
+    if (!reference) {
+      return new Response(JSON.stringify({ error: 'reference is required' }), { status: 400 });
+    }
 
-    // IntaSend status endpoint requires POST with invoice_id in body
-    const response = await fetch('https://payment.intasend.com/api/v1/payment/status/', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + sec,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ invoice_id })
-    });
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-    const data = await response.json();
-    console.log('Verify response:', JSON.stringify(data));
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/payments?reference=eq.${encodeURIComponent(reference)}&select=status,receipt`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        },
+      }
+    );
+    const rows = await res.json();
+    const row = rows?.[0];
 
-    const state = data.invoice?.state || data.state || '';
-    const paid   = state === 'COMPLETE' || state === 'COMPLETED';
-    const failed = state === 'FAILED';
+    if (!row) {
+      return new Response(JSON.stringify({ status: 'pending' }), { status: 200 });
+    }
 
-    return res.status(200).json({ success: paid, failed, status: state });
+    // status is one of: 'pending' | 'paid' | 'failed'
+    return new Response(JSON.stringify({ status: row.status, receipt: row.receipt || null }), { status: 200 });
 
-  } catch (error) {
-    console.error('Verify error:', error);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('api/verify error:', err.message);
+    return new Response(JSON.stringify({ error: 'Verification failed' }), { status: 500 });
   }
 }
